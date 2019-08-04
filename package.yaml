@@ -1,0 +1,91 @@
+name: monad-validate
+version: 1.0.0.0
+category: Control
+copyright: 2019 Hasura
+license: ISC
+author: Alexis King <lexi.lambda@gmail.com>
+github: hasura/monad-validate
+
+synopsis: A monad transformer for data validation.
+description: |
+  Provides the 'ValidateT' monad transformer, designed for writing data validations that provide
+  high-quality error reporting without much effort. 'ValidateT' automatically exploits the data
+  dependencies of your program—as encoded implicitly in uses of 'fmap', '<*>', and '>>='—to report
+  as many errors as possible upon failure instead of completely aborting at the first one. See
+  "Control.Monad.Validate" for more information.
+
+extra-source-files:
+- CHANGELOG.md
+- LICENSE
+- package.yaml
+- README.md
+- stack.yaml
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wredundant-constraints
+
+default-extensions:
+- ApplicativeDo
+- BangPatterns
+- ConstraintKinds
+- DataKinds
+- DefaultSignatures
+- DeriveFoldable
+- DeriveFunctor
+- DeriveGeneric
+- DeriveLift
+- DeriveTraversable
+- EmptyCase
+- ExistentialQuantification
+- FlexibleContexts
+- FlexibleInstances
+- FunctionalDependencies
+- GADTs
+- GeneralizedNewtypeDeriving
+- InstanceSigs
+- KindSignatures
+- LambdaCase
+- MultiParamTypeClasses
+- MultiWayIf
+- NamedFieldPuns
+- OverloadedStrings
+- RankNTypes
+- ScopedTypeVariables
+- StandaloneDeriving
+- TupleSections
+- TypeApplications
+- TypeFamilies
+
+dependencies:
+- base >= 4.11 && < 5
+- exceptions >= 0.9 && < 1
+- monad-control >= 1 && < 2
+- mtl
+- transformers >= 0.5.6
+- transformers-base < 1
+
+library:
+  dependencies: []
+  source-dirs: src
+
+tests:
+  monad-validate-test-suite:
+    dependencies:
+    - aeson
+    - aeson-qq
+    - hspec
+    - monad-validate
+    - scientific
+    - text
+    - unordered-containers
+    - vector
+    ghc-options:
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
+    main: Main.hs
+    source-dirs: test
