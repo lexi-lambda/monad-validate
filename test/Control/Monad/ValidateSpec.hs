@@ -15,7 +15,6 @@ import Data.Aeson (Object, Value(..))
 import Data.Aeson.QQ (aesonQQ)
 import Data.Foldable
 import Data.Functor
-import Data.Maybe
 import Data.Scientific (toBoundedInteger)
 import Data.Text (Text)
 import Data.Typeable
@@ -73,7 +72,7 @@ validateQueryRequest req = withObject "request" req $ \o -> do
   qrAuth           <- withKey o "auth_token" parseAuthToken
   ~(qrTable, info) <- withKey o "table" parseTableName
   qrQuery          <- withKey o "query" parseQuery
-  for_ info $ \tableInfo -> local (pushPath "query") $
+  for_ info $ \tableInfo -> pushPath "query" $
     validateQuery qrTable tableInfo (atIsAdmin qrAuth) qrQuery
   pure QueryRequest { qrAuth, qrTable, qrQuery }
   where
@@ -86,10 +85,12 @@ validateQueryRequest req = withObject "request" req $ \o -> do
 
     parseTableName v = withObject "table name" v $ \o -> do
       name <- TableName <$> withKey o "schema" asString <*> withKey o "name" asString
-      info <- lookup name <$> asks envTables
-      when (isNothing info) $
-        disputeErr $ UnknownTableName name
+      info <- tolerate $ validateTableName name
       pure (name, info)
+
+    validateTableName name = do
+      info <- lookup name <$> asks envTables
+      maybe (refuteErr $ UnknownTableName name) pure info
 
     parseQuery :: forall a. (Typeable a) => Value -> m (Query a)
     parseQuery q = withSingleKeyObject "query expression" q $ \k v -> case k of
@@ -105,21 +106,23 @@ validateQueryRequest req = withObject "request" req $ \o -> do
       loop :: Query a -> m ()
       loop = \case
         QLit _ -> pure ()
-        QSelect colName -> local (pushPath "select") $ case lookup colName tableInfo of
+        QSelect colName -> pushPath "select" $ case lookup colName tableInfo of
           Just colInfo
             | ciAdminOnly colInfo && not isAdmin
             -> disputeErr $ InsufficientPermissions tableName colName
             | otherwise -> pure ()
           Nothing -> disputeErr $ UnknownColumnName tableName colName
-        QAdd a b -> local (pushPath "add") $ loop a *> loop b
-        QEqual a b -> local (pushPath "equal") $ loop a *> loop b
-        QIf a b c -> local (pushPath "if") $ loop a *> loop b *> loop c
+        QAdd a b -> pushPath "add" $ loop a *> loop b
+        QEqual a b -> pushPath "equal" $ loop a *> loop b
+        QIf a b c -> pushPath "if" $ loop a *> loop b *> loop c
 
     parseColumnName = fmap ColumnName . asString
 
-    pushPath path env = env { envPath = path : envPath env }
+    pushPath :: Text -> m a -> m a
+    pushPath path = local (\env -> env { envPath = path : envPath env })
     mkErr info = asks envPath <&> \path -> Error (reverse path) info
     refuteErr = mkErr >=> \err -> refute [err]
+    disputeErr :: ErrorInfo -> m ()
     disputeErr = mkErr >=> \err -> dispute [err]
 
     withType :: forall a b. (Typeable a, Typeable b) => m (Query a) -> m (Query b)
@@ -139,14 +142,28 @@ validateQueryRequest req = withObject "request" req $ \o -> do
     withObject name v f = case v of { Object o -> f o; _ -> refuteErr $ JSONBadValue name v }
 
     withKey :: Object -> Text -> (Value -> m a) -> m a
-    withKey o k f = maybe (refuteErr $ JSONMissingKey k) (local (pushPath k) . f) $ M.lookup k o
+    withKey o k f = maybe (refuteErr $ JSONMissingKey k) (pushPath k . f) $ M.lookup k o
 
     withSingleKeyObject :: Text -> Value -> (Text -> Value -> m a) -> m a
     withSingleKeyObject name i f = withObject name i $ \o -> case M.toList o of
-      { [(k, v)] -> local (pushPath k) $ f k v; _ -> refuteErr $ JSONBadValue name i }
+      { [(k, v)] -> pushPath k $ f k v; _ -> refuteErr $ JSONBadValue name i }
 
 spec :: Spec
-spec = describe "ValidateT" $
+spec = describe "ValidateT" $ do
+  describe "tolerate" $ do
+    it "has no effect on computations without fatal errors" $ do
+      runValidate ((dispute ["boom"] $> ["bang"]) >>= dispute)
+        `shouldBe` Left (["boom", "bang"] :: [Text])
+      runValidate (tolerate (dispute ["boom"] $> ["bang"]) >>= traverse_ dispute)
+        `shouldBe` Left (["boom", "bang"] :: [Text])
+
+    it "converts fatal errors to non-fatal errors" $ do
+      runValidate (refute ["boom"] >> dispute ["bang"])
+        `shouldBe` Left (["boom"] :: [Text])
+      runValidate (tolerate (refute ["boom"]) >> dispute ["bang"])
+        `shouldBe` Left (["boom", "bang"] :: [Text])
+
+
   it "collects validation information from all sub-branches of <*>" $ do
     let tables =
           [ (TableName "public" "users",

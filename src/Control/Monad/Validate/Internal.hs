@@ -81,7 +81,7 @@ validateQueryRequest req = withObject "request" req '$' \o -> do
   qrAuth           <- withKey o "auth_token" parseAuthToken
   ~(qrTable, info) <- withKey o "table" parseTableName
   qrQuery          <- withKey o "query" parseQuery
-  'Data.Foldable.for_' info $ \tableInfo -> 'local' (pushPath "query") '$'
+  'Data.Foldable.for_' info '$' \tableInfo -> pushPath "query" '$'
     validateQuery qrTable tableInfo (atIsAdmin qrAuth) qrQuery
   'pure' QueryRequest { qrAuth, qrTable, qrQuery }
 @
@@ -432,8 +432,11 @@ instance (Monad m, Semigroup e) => MonadValidate e (ValidateT e m) where
     let !e3 = monoMaybe e2 (<> e2) e1 in pure (Left e3)
   dispute e2 = validateT $ \e1 ->
     let !e3 = monoMaybe e2 (<> e2) e1 in pure (Right (MJust e3, ()))
+  tolerate m = validateT $ \e1 ->
+    Right . either (\e2 -> (MJust e2, Nothing)) (fmap Just) <$> unValidateT e1 m
   {-# INLINABLE refute #-}
   {-# INLINABLE dispute #-}
+  {-# INLINABLE tolerate #-}
 
 -- | Runs a 'ValidateT' computation, returning the errors raised by 'refute' or 'dispute' if any,
 -- otherwise returning the computation’s result.
@@ -446,10 +449,12 @@ runValidateT m = unValidateT MNothing m <&> \case
 -- | Runs a 'ValidateT' computation, returning the errors on failure or 'mempty' on success. The
 -- computation’s result, if any, is discarded.
 --
--- >>> execValidate (refute ["bang"])
+-- @
+-- >>> 'execValidate' ('refute' ["bang"])
 -- ["bang"]
--- >>> execValidate @[] (pure 42)
+-- >>> 'execValidate' @[] ('pure' 42)
 -- []
+-- @
 execValidateT :: forall e m a. (Monoid e, Functor m) => ValidateT e m a -> m e
 execValidateT = fmap (either id mempty) . runValidateT
 
