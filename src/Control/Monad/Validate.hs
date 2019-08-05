@@ -7,6 +7,8 @@ module Control.Monad.Validate (
     ValidateT
   , runValidateT
   , execValidateT
+  , embedValidateT
+  , mapErrors
 
   -- * The MonadValidate class
   , MonadValidate(..)

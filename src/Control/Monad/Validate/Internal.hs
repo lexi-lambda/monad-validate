@@ -458,16 +458,62 @@ runValidateT m = unValidateT MNothing m <&> \case
 execValidateT :: forall e m a. (Monoid e, Functor m) => ValidateT e m a -> m e
 execValidateT = fmap (either id mempty) . runValidateT
 
+{-| Runs a 'ValidateT' transformer by interpreting it in an underlying transformer with a
+'MonadValidate' instance. That might seem like a strange thing to do, but it can be useful in
+combination with 'mapErrors' to locally alter the error type in a larger 'ValidateT' computation.
+For example:
+
+@
+throwsIntegers :: 'MonadValidate' ['Integer'] m => m ()
+throwsIntegers = 'dispute' [42]
+
+throwsBools :: 'MonadValidate' ['Bool'] m => m ()
+throwsBools = 'dispute' ['False']
+
+throwsBoth :: 'MonadValidate' ['Either' 'Integer' 'Bool'] m => m ()
+throwsBoth = do
+  'embedValidateT' '$' 'mapErrors' ('map' 'Left') throwsIntegers
+  'embedValidateT' '$' 'mapErrors' ('map' 'Right') throwsBools
+
+>>> 'runValidate' throwsBoth
+'Left' ['Left' 42, 'Right' False]
+@
+
+@since 1.1.0.0 -}
+embedValidateT :: forall e m a. (MonadValidate e m) => ValidateT e m a -> m a
+embedValidateT m = unValidateT MNothing m >>= \case
+  Left e              -> refute e
+  Right (MJust e, v)  -> dispute e $> v
+  Right (MNothing, v) -> pure v
+
+-- | Applies a function to all validation errors produced by a 'ValidateT' computation.
+--
+-- @
+-- >>> 'runValidate' '$' 'mapErrors' ('map' 'show') ('refute' [11, 42])
+-- 'Left' ["11", "42"]
+-- @
+--
+-- @since 1.1.0.0
+mapErrors
+  :: forall e e' m a. (Monad m, Semigroup e')
+  => (e -> e') -> ValidateT e m a -> ValidateT e' m a
+mapErrors f m = lift (unValidateT MNothing m) >>= \case
+  Left e              -> refute (f e)
+  Right (MJust e, v)  -> dispute (f e) $> v
+  Right (MNothing, v) -> pure v
+
 -- | 'ValidateT' specialized to the 'Identity' base monad. See 'ValidateT' for usage information.
 type Validate e = ValidateT e Identity
 
 -- | See 'runValidateT'.
 runValidate :: forall e a. Validate e a -> Either e a
 runValidate = runIdentity . runValidateT
+{-# INLINE runValidate #-}
 
 -- | See 'execValidateT'.
 execValidate :: forall e a. (Monoid e) => Validate e a -> e
 execValidate = runIdentity . execValidateT
+{-# INLINE execValidate #-}
 
 {-| Monotonically increasing 'Maybe' values. A function with the type
 

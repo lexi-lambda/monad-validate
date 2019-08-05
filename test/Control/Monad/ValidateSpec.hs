@@ -163,6 +163,21 @@ spec = describe "ValidateT" $ do
       runValidate (tolerate (refute ["boom"]) >> dispute ["bang"])
         `shouldBe` Left (["boom", "bang"] :: [Text])
 
+  describe "mapErrors" $ do
+    it "applies a function to all validation errors" $
+      runValidate (mapErrors (map show) (refute [True] *> dispute [False]))
+        `shouldBe` Left ["True", "False"]
+
+    it "can be used with embedValidateT to locally change the type of errors" $ do
+      let foo :: (MonadValidate [Integer] m) => m ()
+          foo = dispute [42]
+          bar :: (MonadValidate [Bool] m) => m ()
+          bar = dispute [False]
+          baz :: (MonadValidate [Either Integer Bool] m) => m ()
+          baz = do
+            embedValidateT $ mapErrors (map Left) foo
+            embedValidateT $ mapErrors (map Right) bar
+      runValidate baz `shouldBe` Left [Left 42, Right False]
 
   it "collects validation information from all sub-branches of <*>" $ do
     let tables =
