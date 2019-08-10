@@ -3,6 +3,8 @@
 
 module Control.Monad.Validate.Class
   ( MonadValidate(..)
+  , exceptToValidate
+  , exceptToValidateWith
   ) where
 
 import qualified Control.Monad.Trans.RWS.CPS as CPS
@@ -14,6 +16,7 @@ import qualified Control.Monad.Trans.Writer.CPS as CPS
 import qualified Control.Monad.Trans.Writer.Lazy as Lazy
 import qualified Control.Monad.Trans.Writer.Strict as Strict
 
+import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Control
 import Control.Monad.Trans.Except
@@ -96,3 +99,35 @@ instance (MonadValidate e m, Monoid w) => MonadValidate e (CPS.RWST r w s m) whe
   tolerate m = CPS.rwsT $ \r s1 -> tolerate (CPS.runRWST m r s1) <&>
     maybe (Nothing, s1, mempty) (\(v, s2, w) -> (Just v, s2, w))
   {-# INLINE tolerate #-}
+
+{-| Runs an 'ExceptT' computation, and if it raised an error, re-raises it using 'refute'. This
+effectively converts a computation that uses 'ExceptT' (or 'Control.Monad.Except.MonadError') into
+one that uses 'MonadValidate'.
+
+@
+>>> 'Control.Monad.Validate.runValidate' '$' 'exceptToValidate' ('pure' 42)
+'Right' 42
+>>> 'Control.Monad.Validate.runValidate' '$' 'exceptToValidate' ('Control.Monad.Except.throwError' ["boom"])
+'Left' "boom"
+@
+
+@since 1.1.1.0 -}
+exceptToValidate :: forall e m a. (MonadValidate e m) => ExceptT e m a -> m a
+exceptToValidate = exceptToValidateWith id
+{-# INLINE exceptToValidate #-}
+
+{-| Like 'exceptToValidate', but additionally accepts a function, which is applied to the error
+raised by 'ExceptT' before passing it to 'refute'. This can be useful if the original error type is
+not a 'Semigroup'.
+
+@
+>>> 'Control.Monad.Validate.runValidate' '$' 'exceptToValidateWith' (:[]) ('pure' 42)
+'Right' 42
+>>> 'Control.Monad.Validate.runValidate' '$' 'exceptToValidateWith' (:[]) ('Control.Monad.Except.throwError' "boom")
+'Left' ["boom"]
+@
+
+@since 1.1.1.0 -}
+exceptToValidateWith :: forall e1 e2 m a. (MonadValidate e2 m) => (e1 -> e2) -> ExceptT e1 m a -> m a
+exceptToValidateWith f = either (refute . f) pure <=< runExceptT
+{-# INLINE exceptToValidateWith #-}

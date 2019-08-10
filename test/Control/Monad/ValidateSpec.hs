@@ -11,6 +11,7 @@ import qualified Data.Vector as V
 
 import Control.Monad
 import Control.Monad.Reader
+import Control.Monad.Except
 import Data.Aeson (Object, Value(..))
 import Data.Aeson.QQ (aesonQQ)
 import Data.Foldable
@@ -178,6 +179,34 @@ spec = describe "ValidateT" $ do
             embedValidateT $ mapErrors (map Left) foo
             embedValidateT $ mapErrors (map Right) bar
       runValidate baz `shouldBe` Left [Left 42, Right False]
+
+  describe "exceptToValidate" $
+    it "converts an ExceptT computation to ValidateT" $ do
+      runValidate (exceptToValidate (pure 42))
+        `shouldBe` (Right 42 :: Either [Text] Integer)
+      runValidate (exceptToValidate (throwError ["boom"]))
+        `shouldBe` (Left ["boom"] :: Either [Text] Integer)
+
+  describe "exceptToValidateWith" $
+    it "converts an ExceptT computation to ValidateT by applying a function to any errors" $ do
+      runValidate (exceptToValidateWith (:[]) (pure 42))
+        `shouldBe` (Right 42 :: Either [Text] Integer)
+      runValidate (exceptToValidateWith (:[]) (throwError "boom"))
+        `shouldBe` (Left ["boom"] :: Either [Text] Integer)
+
+  describe "validateToError" $
+    it "converts an ValidateT computation to ExceptT" $ do
+      runExcept (validateToError (pure 42))
+        `shouldBe` (Right 42 :: Either [Text] Integer)
+      runExcept (validateToError (refute ["boom"] *> refute ["bang"]))
+        `shouldBe` (Left ["boom", "bang"] :: Either [Text] Integer)
+
+  describe "validateToErrorWith" $
+    it "converts an ValidateT computation to ExceptT by applying a function to any errors" $ do
+      runExcept (validateToErrorWith mconcat (pure 42))
+        `shouldBe` (Right 42 :: Either Text Integer)
+      runExcept (validateToErrorWith mconcat (refute ["boom"] *> refute ["bang"]))
+        `shouldBe` (Left "boombang" :: Either Text Integer)
 
   it "collects validation information from all sub-branches of <*>" $ do
     let tables =

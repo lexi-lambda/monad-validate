@@ -258,10 +258,10 @@ an exceptionally poor choice for this pattern of accumulation.
 
 Fortunately, the solution is quite simple: use a different data structure. If order doesn’t matter,
 use a @Set@ or @HashSet@. If it does, but either LIFO consumption of the data is okay or you are
-okay with paying to reverse the data once after collecting the errors, @'Data.Semigroup.Dual' [a]@
-to accumulate elements in an efficient manner. If neither is true, use a data structure like @Seq@
-that provides an efficient implementation of a functional queue. You can always convert back to a
-plain list at the end once you’re done, if you have to. -}
+okay with paying to reverse the data once after collecting the errors, use @'Data.Semigroup.Dual'
+[a]@ to accumulate elements in an efficient manner. If neither is true, use a data structure like
+@Seq@ that provides an efficient implementation of a functional queue. You can always convert back
+to a plain list at the end once you’re done, if you have to. -}
 newtype ValidateT e m a = ValidateT
   { getValidateT :: forall s. StateT (MonoMaybe s e) (ExceptT e m) a }
 -- Sadly, GeneralizedNewtypeDeriving can’t help us here due to the inner forall, but we can at least
@@ -495,12 +495,44 @@ embedValidateT m = unValidateT MNothing m >>= \case
 --
 -- @since 1.1.0.0
 mapErrors
-  :: forall e e' m a. (Monad m, Semigroup e')
-  => (e -> e') -> ValidateT e m a -> ValidateT e' m a
+  :: forall e1 e2 m a. (Monad m, Semigroup e2)
+  => (e1 -> e2) -> ValidateT e1 m a -> ValidateT e2 m a
 mapErrors f m = lift (unValidateT MNothing m) >>= \case
   Left e              -> refute (f e)
   Right (MJust e, v)  -> dispute (f e) $> v
   Right (MNothing, v) -> pure v
+
+{-| Runs a 'ValidateT' computation, and if it raised any errors, re-raises them using 'throwError'.
+This effectively converts a computation that uses 'ValidateT' (or 'MonadValidate') into one that
+uses 'MonadError'.
+
+@
+>>> 'runExcept' '$' 'validateToError' ('pure' 42)
+'Right' 42
+>>> 'runExcept' '$' 'validateToError' ('refute' ["boom"] *> 'refute' ["bang"])
+'Left' ["boom", "bang"]
+@
+
+@since 1.1.1.0 -}
+validateToError :: forall e m a. (MonadError e m) => ValidateT e m a -> m a
+validateToError = validateToErrorWith id
+{-# INLINE validateToError #-}
+
+{-| Like 'validateToError', but additionally accepts a function, which is applied to the errors
+raised by 'ValidateT' before passing them to 'throwError'. This can be useful to concatenate
+multiple errors into one.
+
+@
+>>> 'runExcept' '$' 'validateToErrorWith' 'mconcat' ('pure' 42)
+'Right' 42
+>>> 'runExcept' '$' 'validateToErrorWith' 'mconcat' ('refute' ["boom"] *> 'refute' ["bang"])
+'Left' "boombang"
+@
+
+@since 1.1.1.0 -}
+validateToErrorWith :: forall e1 e2 m a. (MonadError e2 m) => (e1 -> e2) -> ValidateT e1 m a -> m a
+validateToErrorWith f = either (throwError . f) pure <=< runValidateT
+{-# INLINE validateToErrorWith #-}
 
 -- | 'ValidateT' specialized to the 'Identity' base monad. See 'ValidateT' for usage information.
 type Validate e = ValidateT e Identity

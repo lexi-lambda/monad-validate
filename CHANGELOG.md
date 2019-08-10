@@ -1,3 +1,7 @@
+# 1.1.1.0 [unreleased]
+
+- Added the `exceptToValidate`, `exceptToValidateWith`, `validateToError`, and `validateToErrorWith` functions for converting between different error-raising monads.
+
 # 1.1.0.0 [2019-08-05]
 
 - Added the `tolerate` method to `MonadValidate`, which allows relaxing validation errors from fatal to nonfatal.

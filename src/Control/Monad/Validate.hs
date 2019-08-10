@@ -13,6 +13,12 @@ module Control.Monad.Validate (
   -- * The MonadValidate class
   , MonadValidate(..)
 
+  -- * Converting between monads
+  , exceptToValidate
+  , exceptToValidateWith
+  , validateToError
+  , validateToErrorWith
+
   -- * The Validate monad
   , Validate
   , runValidate
