@@ -33,12 +33,12 @@ default-extensions:
 - BangPatterns
 - ConstraintKinds
 - DataKinds
-- DefaultSignatures
 - DeriveFoldable
 - DeriveFunctor
 - DeriveGeneric
 - DeriveLift
 - DeriveTraversable
+- DerivingVia
 - EmptyCase
 - ExistentialQuantification
 - FlexibleContexts
@@ -61,7 +61,7 @@ default-extensions:
 - TypeFamilies
 
 dependencies:
-- base >= 4.11 && < 5
+- base >= 4.12 && < 5
 - exceptions >= 0.9 && < 1
 - monad-control >= 1 && < 2
 - mtl

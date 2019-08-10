@@ -1,6 +1,8 @@
-# 1.1.1.0 [unreleased]
+# 1.2.0.0 [unreleased]
 
 - Added the `exceptToValidate`, `exceptToValidateWith`, `validateToError`, and `validateToErrorWith` functions for converting between different error-raising monads.
+- Removed the `DefaultSignatures`-based default methods for `MonadValidate` in favor of a `WrappedMonadTrans` newtype available from `Control.Monad.Validate.Class` that can be used to derive instances using `DerivingVia`.
+- Added a default implementation of `dispute` in terms of `refute` and `tolerate` and added their equivalence as a law for `MonadValidate`.
 
 # 1.1.0.0 [2019-08-05]
 

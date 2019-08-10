@@ -3,14 +3,14 @@
 -- that you may find other uses for them, too. For an overview of this library’s functionality, see
 -- the documentation for 'ValidateT'.
 module Control.Monad.Validate (
-  -- * The ValidateT monad transformer
+  -- * The @ValidateT@ monad transformer
     ValidateT
   , runValidateT
   , execValidateT
   , embedValidateT
   , mapErrors
 
-  -- * The MonadValidate class
+  -- * The @MonadValidate@ class
   , MonadValidate(..)
 
   -- * Converting between monads
@@ -19,7 +19,7 @@ module Control.Monad.Validate (
   , validateToError
   , validateToErrorWith
 
-  -- * The Validate monad
+  -- * The @Validate@ monad
   , Validate
   , runValidate
   , execValidate

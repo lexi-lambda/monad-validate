@@ -513,7 +513,7 @@ uses 'MonadError'.
 'Left' ["boom", "bang"]
 @
 
-@since 1.1.1.0 -}
+@since 1.2.0.0 -}
 validateToError :: forall e m a. (MonadError e m) => ValidateT e m a -> m a
 validateToError = validateToErrorWith id
 {-# INLINE validateToError #-}
@@ -529,7 +529,7 @@ multiple errors into one.
 'Left' "boombang"
 @
 
-@since 1.1.1.0 -}
+@since 1.2.0.0 -}
 validateToErrorWith :: forall e1 e2 m a. (MonadError e2 m) => (e1 -> e2) -> ValidateT e1 m a -> m a
 validateToErrorWith f = either (throwError . f) pure <=< runValidateT
 {-# INLINE validateToErrorWith #-}
