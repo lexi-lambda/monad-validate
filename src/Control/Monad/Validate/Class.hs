@@ -27,6 +27,7 @@ import Control.Monad.Trans.Identity
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.Reader
 import Data.Functor
+import Data.Kind (Type)
 
 {-| The class of validation monads, intended to be used to validate data structures while collecting
 errors along the way. In a sense, 'MonadValidate' is like a combination of
@@ -130,7 +131,7 @@ newtype CustomT c m a = CustomT { runCustomT :: ... }
 @
 
 @since 1.2.0.0 -}
-newtype WrappedMonadTrans (t :: (* -> *) -> * -> *) (m :: * -> *) (a :: *)
+newtype WrappedMonadTrans (t :: (Type -> Type) -> Type -> Type) (m :: Type -> Type) (a :: Type)
   = WrapMonadTrans { unwrapMonadTrans :: t m a }
   deriving (Functor, Applicative, Monad, MonadTrans, MonadTransControl)
 

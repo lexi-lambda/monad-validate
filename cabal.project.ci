@@ -1,0 +1,5 @@
+package monad-validate
+  ghc-options: -Werror
+  documentation: true
+  benchmarks: true
+  tests: true
