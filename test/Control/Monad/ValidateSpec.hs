@@ -5,14 +5,14 @@
 
 module Control.Monad.ValidateSpec (spec) where
 
-import qualified Data.HashMap.Strict as M
+import qualified Data.Aeson.KeyMap as KM
 import qualified Data.Text as T
 import qualified Data.Vector as V
 
 import Control.Monad
 import Control.Monad.Reader
 import Control.Monad.Except
-import Data.Aeson (Object, Value(..))
+import Data.Aeson (Key, Object, Value(..))
 import Data.Aeson.QQ (aesonQQ)
 import Data.Foldable
 import Data.Functor
@@ -37,7 +37,7 @@ newtype ColumnInfo = ColumnInfo { ciAdminOnly :: Bool }
 
 data Env = Env
   { envTables :: [(TableName, TableInfo)]
-  , envPath :: [Text] }
+  , envPath :: [Key] }
   deriving (Show, Eq)
 
 data Query a where
@@ -55,14 +55,14 @@ data QueryRequest = QueryRequest
   , qrQuery :: Query Integer }
   deriving (Show, Eq)
 
-data Error = Error { errPath :: [Text], errInfo :: ErrorInfo }
+data Error = Error { errPath :: [Key], errInfo :: ErrorInfo }
   deriving (Show, Eq)
 data ErrorInfo
   = JSONBadValue Text Value
-  | JSONMissingKey Text
+  | JSONMissingKey Key
   | InvalidAuthToken Text
   | UnknownTableName TableName
-  | UnknownQueryOperator Text
+  | UnknownQueryOperator Key
   | TypeError TypeRep TypeRep
   | UnknownColumnName TableName ColumnName
   | InsufficientPermissions TableName ColumnName
@@ -119,7 +119,7 @@ validateQueryRequest req = withObject "request" req $ \o -> do
 
     parseColumnName = fmap ColumnName . asString
 
-    pushPath :: Text -> m a -> m a
+    pushPath :: Key -> m a -> m a
     pushPath path = local (\env -> env { envPath = path : envPath env })
     mkErr info = asks envPath <&> \path -> Error (reverse path) info
     refuteErr = mkErr >=> \err -> refute [err]
@@ -142,11 +142,11 @@ validateQueryRequest req = withObject "request" req $ \o -> do
     withObject :: Text -> Value -> (Object -> m a) -> m a
     withObject name v f = case v of { Object o -> f o; _ -> refuteErr $ JSONBadValue name v }
 
-    withKey :: Object -> Text -> (Value -> m a) -> m a
-    withKey o k f = maybe (refuteErr $ JSONMissingKey k) (pushPath k . f) $ M.lookup k o
+    withKey :: Object -> Key -> (Value -> m a) -> m a
+    withKey o k f = maybe (refuteErr $ JSONMissingKey k) (pushPath k . f) $ KM.lookup k o
 
-    withSingleKeyObject :: Text -> Value -> (Text -> Value -> m a) -> m a
-    withSingleKeyObject name i f = withObject name i $ \o -> case M.toList o of
+    withSingleKeyObject :: Text -> Value -> (Key -> Value -> m a) -> m a
+    withSingleKeyObject name i f = withObject name i $ \o -> case KM.toList o of
       { [(k, v)] -> pushPath k $ f k v; _ -> refuteErr $ JSONBadValue name i }
 
 spec :: Spec

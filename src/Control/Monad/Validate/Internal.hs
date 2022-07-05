@@ -296,7 +296,7 @@ instance (Monad m) => Applicative (ValidateT e m) where
   {-# INLINABLE (<*>) #-}
 
 instance (Monad m) => Monad (ValidateT e m) where
-  ValidateT x >>= f = ValidateT (x >>= (getValidateT . f))
+  ValidateT m >>= f = ValidateT (m >>= \x -> getValidateT (f x))
   {-# INLINE (>>=) #-}
 
 instance MonadTrans (ValidateT e) where

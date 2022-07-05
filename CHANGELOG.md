@@ -1,3 +1,7 @@
+# 1.2.0.1 [to be released]
+
+- Added support for GHC 9.0 and 9.2.
+
 # 1.2.0.0 [2019-08-09]
 
 - Added the `exceptToValidate`, `exceptToValidateWith`, `validateToError`, and `validateToErrorWith` functions for converting between different error-raising monads.

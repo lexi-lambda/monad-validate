@@ -93,7 +93,7 @@ test-suite monad-validate-test-suite
 
   ghc-options: -rtsopts -threaded -with-rtsopts=-N
   build-depends:
-    , aeson >=1 && <2
+    , aeson >=2 && <3
     , aeson-qq
     , hspec
     , monad-validate
