@@ -1,6 +1,6 @@
 cabal-version: 2.4
 name: monad-validate
-version: 1.2.0.0
+version: 1.2.0.1
 category: Control
 build-type: Simple
 

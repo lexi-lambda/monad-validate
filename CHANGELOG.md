@@ -1,4 +1,4 @@
-# 1.2.0.1 [to be released]
+# 1.2.0.1 [2022-07-05]
 
 - Added support for GHC 9.0 and 9.2.
 
