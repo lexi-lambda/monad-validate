@@ -16,7 +16,6 @@ import Control.Monad.Writer.Class
 import Data.Functor
 import Data.Functor.Identity
 import Data.Tuple (swap)
-import GHC.Stack (HasCallStack)
 
 import Control.Monad.Validate.Class
 
@@ -327,7 +326,6 @@ instance MonadTransControl (ValidateT e) where
     Right . (e,) <$> f (fmap ValidateTState . unValidateT e)
   {-# INLINABLE liftWith #-}
 
-  restoreT :: (HasCallStack, Monad m) => m (StT (ValidateT e) a) -> ValidateT e m a
   restoreT m = validateT $ \e1 -> do
     ValidateTState r <- m
     case e1 of
@@ -338,17 +336,20 @@ instance MonadTransControl (ValidateT e) where
       MJust _ -> case r of
         Left e2             -> pure $ Left e2
         Right (MJust e2, v) -> pure $ Right (MJust e2, v)
-        Right (MNothing, _) -> error
-          $  "Control.Monad.Validate.ValidateT#restoreT: panic!\n"
-          <> "  An attempt was made to restore from a state captured before any validation\n"
-          <> "  errors occurred into a context with validation errors. This is probably the\n"
-          <> "  result of an incorrect use of MonadBaseControl (as validation errors should\n"
-          <> "  strictly increase). Ensure that all state is restored immediately upon\n"
-          <> "  returning from the base monad (or is not restored at all).\n"
-          <> "\n"
-          <> "  If you believe your use of MonadBaseControl is not in error, and this is a bug\n"
-          <> "  in ValidateT, please submit a bug report."
+        Right (MNothing, _) -> invalidRestoreError
   {-# INLINABLE restoreT #-}
+
+invalidRestoreError :: a
+invalidRestoreError = error
+  "Control.Monad.Validate.ValidateT#restoreT: panic!\n\
+  \  An attempt was made to restore from a state captured before any validation\n\
+  \  errors occurred into a context with validation errors. This is probably the\n\
+  \  result of an incorrect use of MonadBaseControl (as validation errors should\n\
+  \  strictly increase). Ensure that all state is restored immediately upon\n\
+  \  returning from the base monad (or is not restored at all).\n\
+  \\n\
+  \  If you believe your use of MonadBaseControl is not in error, and this is a\n\
+  \  bug in ValidateT, please submit a bug report."
 
 instance (MonadBaseControl b m) => MonadBaseControl b (ValidateT e m) where
   type StM (ValidateT e m) a = ComposeSt (ValidateT e) m a
