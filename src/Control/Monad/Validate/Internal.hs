@@ -5,6 +5,7 @@
 -- "Control.Monad.Validate" for the public interface.
 module Control.Monad.Validate.Internal where
 
+import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Base
 import Control.Monad.Catch
