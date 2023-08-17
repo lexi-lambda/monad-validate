@@ -1,3 +1,7 @@
+# 1.2.1.0 [to be released]
+
+- Added `MonadFix` instance for `ValidateT`.
+
 # 1.2.0.2 [2023-08-17]
 
 - Added support for mtl 2.3.

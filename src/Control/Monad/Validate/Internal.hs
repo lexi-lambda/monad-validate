@@ -10,6 +10,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Base
 import Control.Monad.Catch
 import Control.Monad.Except
+import Control.Monad.Fix
 import Control.Monad.Reader.Class
 import Control.Monad.State.Strict
 import Control.Monad.Trans.Control
@@ -302,6 +303,10 @@ instance (Monad m) => Monad (ValidateT e m) where
 instance MonadTrans (ValidateT e) where
   lift m = ValidateT (lift $ lift m)
   {-# INLINE lift #-}
+
+instance (MonadFix m) => MonadFix (ValidateT e m) where
+  mfix f = ValidateT $ mfix (\x -> getValidateT (f x))
+  {-# INLINE mfix #-}
 
 instance (MonadIO m) => MonadIO (ValidateT e m) where
   liftIO = lift . liftIO
