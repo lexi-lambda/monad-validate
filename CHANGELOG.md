@@ -1,3 +1,7 @@
+# 1.2.0.2 [not yet released]
+
+- Added support for mtl 2.3.
+
 # 1.2.0.1 [2022-07-05]
 
 - Added support for GHC 9.0 and 9.2.

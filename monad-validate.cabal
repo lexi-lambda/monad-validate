@@ -70,6 +70,7 @@ common common
     TupleSections
     TypeApplications
     TypeFamilies
+    TypeOperators
 
   build-depends:
     , base >=4.12 && <5
