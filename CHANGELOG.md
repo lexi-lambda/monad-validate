@@ -1,4 +1,4 @@
-# 1.2.1.0 [to be released]
+# 1.3.0.0 [2023-08-17]
 
 - Added `MonadFix` instance for `ValidateT`.
 
