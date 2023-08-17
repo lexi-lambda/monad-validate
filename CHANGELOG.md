@@ -1,4 +1,4 @@
-# 1.2.0.2 [not yet released]
+# 1.2.0.2 [2023-08-17]
 
 - Added support for mtl 2.3.
 
